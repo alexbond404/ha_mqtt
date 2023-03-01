@@ -39,6 +39,8 @@ typedef struct
     bool mqtt_connected;
     bool is_registered;
 
+    char command_topic_format[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+2];
+
     char *current_data;
 } ha_device_t;
 
@@ -48,6 +50,7 @@ typedef ha_device_t* ha_device_handle_t;
 ha_device_handle_t ha_device_init(ha_device_config_t *config);
 int ha_device_add_config(ha_device_handle_t ha_dev, ha_config_handle_t config);
 int ha_device_start(ha_device_handle_t ha_dev);
+int ha_device_stop(ha_device_handle_t ha_dev);
 int ha_device_commit(ha_device_handle_t ha_dev);
 
 #endif //__HA_DEVICE_H

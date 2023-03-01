@@ -44,7 +44,7 @@ void ha_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj)
 //    cJSON_AddItemToObject(obj, "unit_of_measurement", cJSON_CreateString());
 }
 
-cJSON* ha_sensor_get_value(ha_config_handle_t ha_config)
+cJSON* ha_sensor_get_value_norm(ha_config_handle_t ha_config)
 {
     ha_sensor_t *config = (ha_sensor_t*)ha_config->config_spec;
 

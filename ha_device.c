@@ -58,6 +58,29 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         {
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
+            char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+2];
+            if (event->topic_len+1 < sizeof(topic))
+            {
+                memcpy(topic, event->topic, event->topic_len);
+                topic[event->topic_len] = 0x00;
+
+                char dev_name[HA_NAME_MAX_SIZE];
+                if (sscanf(topic, dev->command_topic_format, dev_name) == 1)
+                {
+                    ha_config_list_entry_t *it;
+                    LIST_FOREACH(it, &dev->configs, list_entry)
+                    {
+                        if (strcmp(dev_name, ha_base_config_get_device_name_norm_str(it->config)) == 0)
+                        {
+                            if (ha_base_config_has_on_change_cb(it->config))
+                            {
+                                ha_base_config_call_on_change_cb(it->config, event->data, event->data_len);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
         break;
 
@@ -135,8 +158,12 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
             cJSON_AddItemToObject(root, "device_class", cJSON_CreateString(ha_base_config_get_device_class_str(it->config)));
         }
 
-        // TODO: add command_topic
-
+        if (ha_base_config_has_on_change_cb(it->config))
+        {
+            snprintf(topic, sizeof(topic), ha_dev->command_topic_format, ha_base_config_get_device_name_norm_str(it->config));
+            cJSON_AddItemToObject(root, "command_topic", cJSON_CreateString(topic));
+            esp_mqtt_client_subscribe(ha_dev->mqtt, topic, 0);
+        }
 
         // add private config part
         ha_base_config_get_private_fields(it->config, root);
@@ -206,6 +233,8 @@ ha_device_handle_t ha_device_init(ha_device_config_t *config)
     dev->mqtt_connected = false;
     dev->is_registered = false;
 
+    snprintf(dev->command_topic_format, sizeof(dev->command_topic_format), "%s/%s/set/%%s", dev->device_unique_prefix, dev->device_name);
+
     dev->current_data = NULL;
 
     return dev;
@@ -235,6 +264,12 @@ int ha_device_start(ha_device_handle_t ha_dev)
     return 0;
 }
 
+int ha_device_stop(ha_device_handle_t ha_dev)
+{
+    esp_mqtt_client_disconnect(ha_dev->mqtt);
+    return 0;
+}
+
 int ha_device_commit(ha_device_handle_t ha_dev)
 {
     cJSON *root = cJSON_CreateObject();
@@ -242,7 +277,7 @@ int ha_device_commit(ha_device_handle_t ha_dev)
     ha_config_list_entry_t *it;
     LIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
-        cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value(it->config));
+        cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
     }
     if (ha_dev->current_data)
     {

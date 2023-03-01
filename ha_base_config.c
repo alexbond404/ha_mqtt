@@ -11,10 +11,13 @@ static const char forbidden_symbols[] = " .";
 
 extern const char* ha_binary_sensor_get_device_class_str(ha_config_handle_t ha_config);
 extern const char* ha_sensor_get_device_class_str(ha_config_handle_t ha_config);
+extern const char* ha_switch_get_device_class_str(ha_config_handle_t ha_config);
 extern void ha_binary_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
 extern void ha_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
-extern cJSON* ha_binary_sensor_get_value(ha_config_handle_t ha_config);
-extern cJSON* ha_sensor_get_value(ha_config_handle_t ha_config);
+extern void ha_switch_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
+extern cJSON* ha_binary_sensor_get_value_norm(ha_config_handle_t ha_config);
+extern cJSON* ha_sensor_get_value_norm(ha_config_handle_t ha_config);
+extern cJSON* ha_switch_get_value_norm(ha_config_handle_t ha_config);
 
 
 ha_config_handle_t ha_base_config_init(char *name, config_type_e type)
@@ -39,6 +42,7 @@ ha_config_handle_t ha_base_config_init(char *name, config_type_e type)
         }
     }
     config->type = type;
+    config->on_change_cb = NULL;
 
     return config;
 }
@@ -71,6 +75,8 @@ const char* ha_base_config_get_device_class_str(ha_config_handle_t ha_config)
             return ha_binary_sensor_get_device_class_str(ha_config);
         case SENSOR:
             return ha_sensor_get_device_class_str(ha_config);
+        case SWITCH:
+            return ha_switch_get_device_class_str(ha_config);
 
         default:
             return NULL;
@@ -87,22 +93,37 @@ void ha_base_config_get_private_fields(ha_config_handle_t ha_config, cJSON *obj)
         case SENSOR:
             ha_sensor_get_private_fields(ha_config, obj);
             break;
+        case SWITCH:
+            ha_switch_get_private_fields(ha_config, obj);
+            break;
 
         default:
             break;
     }
 }
 
-cJSON* ha_base_config_get_value(ha_config_handle_t ha_config)
+cJSON* ha_base_config_get_value_norm(ha_config_handle_t ha_config)
 {
     switch (ha_config->type)
     {
         case BINARY_SENSOR:
-            return ha_binary_sensor_get_value(ha_config);
+            return ha_binary_sensor_get_value_norm(ha_config);
         case SENSOR:
-            return ha_sensor_get_value(ha_config);
+            return ha_sensor_get_value_norm(ha_config);
+        case SWITCH:
+            return ha_switch_get_value_norm(ha_config);
 
         default:
             return NULL;
     }
+}
+
+bool ha_base_config_has_on_change_cb(ha_config_handle_t ha_config)
+{
+    return (ha_config->on_change_cb != NULL);
+}
+
+void ha_base_config_call_on_change_cb(ha_config_handle_t ha_config, char *data, int data_len)
+{
+    ha_config->on_change_cb(ha_config, data, data_len);
 }

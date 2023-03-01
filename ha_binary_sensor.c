@@ -48,7 +48,7 @@ void ha_binary_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *ob
     cJSON_AddItemToObject(obj, "payload_on", cJSON_CreateString(state_on));
 }
 
-cJSON* ha_binary_sensor_get_value(ha_config_handle_t ha_config)
+cJSON* ha_binary_sensor_get_value_norm(ha_config_handle_t ha_config)
 {
     ha_binary_sensor_t *config = (ha_binary_sensor_t*)ha_config->config_spec;
 
