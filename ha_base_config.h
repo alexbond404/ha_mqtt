@@ -15,5 +15,6 @@ void ha_base_config_get_private_fields(ha_config_handle_t ha_config, cJSON *obj)
 cJSON* ha_base_config_get_value_norm(ha_config_handle_t ha_config);
 bool ha_base_config_has_on_change_cb(ha_config_handle_t ha_config);
 void ha_base_config_call_on_change_cb(ha_config_handle_t ha_config, char *data, int data_len);
+bool ha_base_config_has_value(ha_config_handle_t ha_config);
 
 #endif //__HA_CONFIG_BASE_H

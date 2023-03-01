@@ -20,6 +20,7 @@
 typedef enum
 {
     BINARY_SENSOR = 0,
+    BUTTON,
     NUMBER,
     SELECT,
     SENSOR,
@@ -38,6 +39,15 @@ extern const char *binary_sensor_class_str[];
 
 typedef enum
 {
+    BUTTON_NONE = 0,
+    BUTTON_RESTART,
+    BUTTON_UPDATE
+} button_class_e;
+extern const char *button_class_str[];
+
+
+typedef enum
+{
     SENSOR_NONE = 0,
 } sensor_class_e;
 extern const char *sensor_class_str[];
@@ -51,6 +61,7 @@ typedef struct
     char name_norm[HA_NAME_MAX_SIZE];
     config_type_e type;
     on_change_cb_t on_change_cb;
+    bool has_value;
 
     void *config_spec;
 } ha_config_t;

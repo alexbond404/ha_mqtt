@@ -146,8 +146,11 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
         snprintf(tmp_str, sizeof(tmp_str), "%s_%s_%s", ha_dev->device_name, ha_base_config_get_device_name_str(it->config), ha_dev->device_unique_prefix);
         cJSON_AddItemToObject(root, "unique_id", cJSON_CreateString(toLower(tmp_str)));
 
-        snprintf(tmp_str, sizeof(tmp_str), "{{ value_json.%s }}", ha_base_config_get_device_name_norm_str(it->config));
-        cJSON_AddItemToObject(root, "value_template", cJSON_CreateString(toLower(tmp_str)));
+        if (ha_base_config_has_value(it->config))
+        {
+            snprintf(tmp_str, sizeof(tmp_str), "{{ value_json.%s }}", ha_base_config_get_device_name_norm_str(it->config));
+            cJSON_AddItemToObject(root, "value_template", cJSON_CreateString(toLower(tmp_str)));
+        }
 
         cJSON_AddItemToObject(root, "platform", cJSON_CreateString("mqtt"));
 
@@ -277,7 +280,10 @@ int ha_device_commit(ha_device_handle_t ha_dev)
     ha_config_list_entry_t *it;
     LIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
-        cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+        if (ha_base_config_has_value(it->config))
+        {
+            cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+        }
     }
     if (ha_dev->current_data)
     {
