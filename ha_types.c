@@ -9,9 +9,10 @@ const char *config_type_str[] =
     "switch"
 };
 
-const char *binary_sensor_class_str[] = 
+const char *dev_class_str[] = 
 {
     "presence",
+    "temperature"
 };
 
 const char *button_class_str[] =
@@ -20,7 +21,14 @@ const char *button_class_str[] =
     "update"
 };
 
-const char sensor_class_str[] =
+const char *sensor_class_str[] =
 {
     "",
+};
+
+const char *number_mode_str[] =
+{
+    "auto",
+    "box",
+    "slider"
 };

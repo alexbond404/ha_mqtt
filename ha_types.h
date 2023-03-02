@@ -31,10 +31,11 @@ extern const char *config_type_str[];
 
 typedef enum
 {
-    BINARY_SENSOR_NONE = 0,
-    BINARY_SENSOR_PRESENCE,
-} binary_sensor_class_e;
-extern const char *binary_sensor_class_str[];
+    DEV_CLASS_NONE = 0,
+    DEV_CLASS_PRESENCE,
+    DEV_CLASS_TEMPERATURE,
+} dev_class_e;
+extern const char *dev_class_str[];
 
 
 typedef enum
@@ -51,6 +52,15 @@ typedef enum
     SENSOR_NONE = 0,
 } sensor_class_e;
 extern const char *sensor_class_str[];
+
+
+typedef enum
+{
+    NUMBER_MODE_AUTO = 0,
+    NUMBER_MODE_BOX,
+    NUMBER_MODE_SLIDER
+} number_mode_e;
+extern const char *number_mode_str[];
 
 
 typedef void (*on_change_cb_t)(void *config, char *data, uint16_t data_len);
