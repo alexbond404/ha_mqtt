@@ -79,8 +79,8 @@ static void ha_number_on_change_cb(void *config, char *data, uint16_t data_len)
     number[data_len] = 0x00;
 
     float new_value = atof(number);
-    if ((conf->settings.min < new_value) &&
-        (conf->settings.max > new_value) &&
+    if ((conf->settings.min <= new_value) &&
+        (conf->settings.max >= new_value) &&
         (conf->settings.on_change_cb(ha_config, new_value)))
     {
         conf->value = new_value;
