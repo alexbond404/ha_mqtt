@@ -58,7 +58,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         {
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
-            char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+2];
+            char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+HA_NAME_MAX_SIZE];
             if (event->topic_len+1 < sizeof(topic))
             {
                 memcpy(topic, event->topic, event->topic_len);
