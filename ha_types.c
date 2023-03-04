@@ -11,6 +11,7 @@ const char *config_type_str[] =
 
 const char *dev_class_str[] = 
 {
+    "occupancy",
     "presence",
     "temperature"
 };
