@@ -2,6 +2,7 @@
 
 #include "ha_sensor.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ha_base_config.h"
@@ -12,6 +13,7 @@ typedef struct
     sensor_class_e cls;
     char units[10];
     float value;
+    int8_t precision;
 } ha_sensor_t;
 
 
@@ -23,6 +25,7 @@ ha_config_handle_t ha_sensor_init(char *name, sensor_class_e cls, float value)
     config->cls = cls;
     config->units[0] = 0x00;
     config->value = value;
+    config->precision = -1;
     config_base->config_spec = config;
 
     return config_base;
@@ -57,7 +60,18 @@ cJSON* ha_sensor_get_value_norm(ha_config_handle_t ha_config)
 {
     ha_sensor_t *config = (ha_sensor_t*)ha_config->config_spec;
 
-    return cJSON_CreateNumber(config->value);
+    if (config->precision >= 0)
+    {
+        char format[8];
+        snprintf(format, sizeof(format), "%%.%uf", (unsigned int)config->precision);
+        char value[20];
+        snprintf(value, sizeof(value), format, config->value);
+        return cJSON_CreateRaw(value);
+    }
+    else
+    {
+        return cJSON_CreateNumber(config->value);
+    }
 }
 
 bool ha_sensor_set_units_of_measurement(ha_config_handle_t ha_config, char *units)
@@ -69,4 +83,10 @@ bool ha_sensor_set_units_of_measurement(ha_config_handle_t ha_config, char *unit
         return true;
     }
     return false;
+}
+
+void ha_sensor_set_value_precision(ha_config_handle_t ha_config, int8_t precision)
+{
+    ha_sensor_t *config = (ha_sensor_t*)ha_config->config_spec;
+    config->precision = precision;
 }
