@@ -149,7 +149,7 @@ bool ha_base_config_has_on_change_cb(ha_config_handle_t ha_config)
 
 void ha_base_config_call_on_change_cb(ha_config_handle_t ha_config, char *data, int data_len)
 {
-    ha_config->on_change_cb(ha_config, data, data_len);
+    return ha_config->on_change_cb(ha_config, data, data_len);
 }
 
 bool ha_base_config_has_value(ha_config_handle_t ha_config)

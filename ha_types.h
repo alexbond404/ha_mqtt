@@ -51,6 +51,12 @@ extern const char *button_class_str[];
 typedef enum
 {
     SENSOR_NONE = 0,
+    SENSOR_AQI,
+    SENSOR_CARBON_DIOXIDE,
+    SENSOR_HUMIDITY,
+    SENSOR_ILLUMINANCE,
+    SENSOR_PRESSURE,
+    SENSOR_TEMPERATURE,
 } sensor_class_e;
 extern const char *sensor_class_str[];
 
@@ -64,7 +70,7 @@ typedef enum
 extern const char *number_mode_str[];
 
 
-typedef void (*on_change_cb_t)(void *config, char *data, uint16_t data_len);
+typedef bool (*on_change_cb_t)(void *config, char *data, uint16_t data_len);
 
 typedef struct 
 {

@@ -1,3 +1,5 @@
+// https://www.home-assistant.io/integrations/switch.mqtt/
+
 #include "ha_switch.h"
 
 #include <stdlib.h>
@@ -22,7 +24,7 @@ static const char state_off[] = "off";
 static const state_value_t states[] = {{.str = state_on, .value = true},
                                        {.str = state_off, .value = false}};
 
-static void ha_switch_on_change_cb(void *config, char *data, uint16_t data_len);
+static bool ha_switch_on_change_cb(void *config, char *data, uint16_t data_len);
 
 
 ha_config_handle_t ha_switch_init(char *name, bool value, on_switch_change_cb_t on_change_cb)
@@ -78,7 +80,7 @@ cJSON* ha_switch_get_value_norm(ha_config_handle_t ha_config)
     }
 }
 
-static void ha_switch_on_change_cb(void *config, char *data, uint16_t data_len)
+static bool ha_switch_on_change_cb(void *config, char *data, uint16_t data_len)
 {
     ha_config_handle_t ha_config = (ha_config_handle_t)config;
     ha_switch_t *conf = (ha_switch_t*)ha_config->config_spec;
@@ -92,8 +94,10 @@ static void ha_switch_on_change_cb(void *config, char *data, uint16_t data_len)
                 if (conf->on_change_cb(ha_config, states[i].value))
                 {
                     conf->value = states[i].value;
+                    return true;
                 }
             }
         }
     }
+    return false;
 }

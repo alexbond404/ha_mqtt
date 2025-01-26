@@ -24,7 +24,12 @@ const char *button_class_str[] =
 
 const char *sensor_class_str[] =
 {
-    "",
+    "aqi",
+    "carbon_dioxide",
+    "humidity",
+    "illuminance",
+    "pressure",
+    "temperature",
 };
 
 const char *number_mode_str[] =

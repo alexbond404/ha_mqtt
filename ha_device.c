@@ -1,5 +1,6 @@
 #include "ha_device.h"
 
+#include <ctype.h>
 #include <string.h>
 #include "esp_log.h"
 #include "cJSON.h"
@@ -10,6 +11,7 @@
 static const char *TAG = "ha_dev";
 
 static void ha_device_update_ha(ha_device_handle_t ha_dev);
+static void ha_device_publish_data(ha_device_handle_t ha_dev);
 
 
 static char* toLower(char *str)
@@ -74,7 +76,23 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                         {
                             if (ha_base_config_has_on_change_cb(it->config))
                             {
-                                ha_base_config_call_on_change_cb(it->config, event->data, event->data_len);
+                                if (ha_base_config_call_on_change_cb(it->config, event->data, event->data_len))
+                                {
+                                    if (ha_base_config_has_value(it->config))
+                                    {
+                                        cJSON *root = cJSON_CreateObject();
+                                        cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+
+                                        if (dev->current_data)
+                                        {
+                                            free(dev->current_data);
+                                        }
+                                        dev->current_data = cJSON_PrintUnformatted(root);
+                                        cJSON_Delete(root);
+
+                                        ha_device_publish_data(dev);
+                                    }
+                                }
                             }
                             break;
                         }
@@ -86,7 +104,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
         default:
         {
-            ESP_LOGI(TAG, "MQTT event id: %d", event_id);
+            ESP_LOGI(TAG, "MQTT event id: %d", (int)event_id);
         }
         break;
     }
@@ -123,11 +141,11 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
         cJSON_AddItemToArray(identifiers, cJSON_CreateString(toLower(tmp_str)));
         cJSON_AddItemToObject(device, "identifiers", identifiers);
         cJSON_AddItemToObject(device, "name", cJSON_CreateString(ha_dev->device_name));
-        if (ha_dev->manufacturer)
+        if (ha_dev->manufacturer[0])
         {
             cJSON_AddItemToObject(device, "manufacturer", cJSON_CreateString(ha_dev->manufacturer));
         }
-        if (ha_dev->model)
+        if (ha_dev->model[0])
         {
             cJSON_AddItemToObject(device, "model", cJSON_CreateString(ha_dev->model));
         }
@@ -187,7 +205,7 @@ static void ha_device_publish_data(ha_device_handle_t ha_dev)
 {
     if (ha_dev->mqtt_connected && ha_dev->is_registered)
     {
-        char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE];
+        static char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE];
         snprintf(topic, sizeof(topic), "%s/%s", ha_dev->device_unique_prefix, ha_dev->device_name);
 
 //        ESP_LOGI(TAG, "data publish: %s\n%s", topic, ha_dev->current_data);
@@ -216,18 +234,28 @@ ha_device_handle_t ha_device_init(ha_device_config_t *config)
     {
         strcpy(dev->manufacturer, config->manufacturer);
     }
+    else
+    {
+        dev->manufacturer[0] = 0;
+    }
 
     if (config->model != NULL)
     {
         strcpy(dev->model, config->model);
     }
+    else
+    {
+        dev->model[0] = 0;
+    }
 
     LIST_INIT(&dev->configs);
 
     esp_mqtt_client_config_t mqtt_cfg = {
-        .host = config->mqtt_server,
-        .username = config->mqtt_username,
-        .password = config->mqtt_password,
+        .broker.address.hostname = config->mqtt_server,
+        .broker.address.transport = MQTT_TRANSPORT_OVER_TCP,
+        .broker.address.port = 1883,
+        .credentials.username = config->mqtt_username,
+        .credentials.authentication.password = config->mqtt_password,
     };
 
     dev->mqtt = esp_mqtt_client_init(&mqtt_cfg);
