@@ -13,7 +13,7 @@ typedef struct
     on_select_change_cb_t on_change_cb;
 } ha_select_t;
 
-static void ha_sensor_on_change_cb(void *config, char *data, uint16_t data_len);
+static bool ha_sensor_on_change_cb(void *config, char *data, uint16_t data_len);
 
 
 ha_config_handle_t ha_select_init(char *name, const char **options, uint8_t options_len, uint8_t value, on_select_change_cb_t on_change_cb)
@@ -65,7 +65,7 @@ cJSON* ha_select_get_value_norm(ha_config_handle_t ha_config)
     return cJSON_CreateString(config->options[config->value]);
 }
 
-static void ha_sensor_on_change_cb(void *config, char *data, uint16_t data_len)
+static bool ha_sensor_on_change_cb(void *config, char *data, uint16_t data_len)
 {
     ha_config_handle_t ha_config = (ha_config_handle_t)config;
     ha_select_t *conf = (ha_select_t*)ha_config->config_spec;
@@ -79,8 +79,10 @@ static void ha_sensor_on_change_cb(void *config, char *data, uint16_t data_len)
                 if (conf->on_change_cb(ha_config, i))
                 {
                     conf->value = i;
+                    return true;
                 }
             }
         }
     }
+    return false;
 }
