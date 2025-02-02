@@ -54,24 +54,17 @@ void ha_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj)
     {
         cJSON_AddItemToObject(obj, "unit_of_measurement", cJSON_CreateString(config->units));
     }
+    if (config->precision >= 0)
+    {
+        cJSON_AddItemToObject(obj, "suggested_display_precision", cJSON_CreateNumber(config->precision));
+    }
 }
 
 cJSON* ha_sensor_get_value_norm(ha_config_handle_t ha_config)
 {
     ha_sensor_t *config = (ha_sensor_t*)ha_config->config_spec;
 
-    if (config->precision >= 0)
-    {
-        char format[8];
-        snprintf(format, sizeof(format), "%%.%uf", (unsigned int)config->precision);
-        char value[20];
-        snprintf(value, sizeof(value), format, config->value);
-        return cJSON_CreateRaw(value);
-    }
-    else
-    {
-        return cJSON_CreateNumber(config->value);
-    }
+    return cJSON_CreateNumber(config->value);
 }
 
 bool ha_sensor_set_units_of_measurement(ha_config_handle_t ha_config, char *units)
