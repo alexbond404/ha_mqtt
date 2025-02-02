@@ -156,8 +156,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
         snprintf(topic, sizeof(topic), "%s/%s", ha_dev->device_unique_prefix, ha_dev->device_name);
         cJSON_AddItemToObject(root, "json_attributes_topic", cJSON_CreateString(topic));
 
-        snprintf(tmp_str, sizeof(tmp_str), "%s %s", ha_dev->device_name, ha_base_config_get_device_name_str(it->config));
-        cJSON_AddItemToObject(root, "name", cJSON_CreateString(tmp_str));
+        cJSON_AddItemToObject(root, "name", cJSON_CreateString(ha_base_config_get_device_name_str(it->config)));
 
         cJSON_AddItemToObject(root, "state_topic", cJSON_CreateString(topic));
 
