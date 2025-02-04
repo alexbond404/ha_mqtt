@@ -115,7 +115,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
     // invalidate current data
     char topic[HA_PREFIX_MAX_SIZE+1+CONFIG_DEVICE_TYPE_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+6];
     snprintf(topic, sizeof(topic), "%s/%s", ha_dev->device_unique_prefix, ha_dev->device_name);
-    esp_mqtt_client_publish(ha_dev->mqtt, topic, NULL, 0, 0, 0);
+    esp_mqtt_client_publish(ha_dev->mqtt, topic, NULL, 0, 0, 1);
 
     // remove previous configs
     ha_config_list_entry_t *it;
@@ -124,7 +124,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
         snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config", ha_dev->ha_topic_prefix, ha_base_config_get_device_type_str(it->config),
                  ha_dev->device_name, ha_base_config_get_device_name_norm_str(it->config));
 
-        esp_mqtt_client_publish(ha_dev->mqtt, topic, NULL, 0, 0, 0);
+        esp_mqtt_client_publish(ha_dev->mqtt, topic, NULL, 0, 0, 1);
     }
 
     // adding new configs
@@ -194,7 +194,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
 
         snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config", ha_dev->ha_topic_prefix, ha_base_config_get_device_type_str(it->config),
                  ha_dev->device_name, ha_base_config_get_device_name_norm_str(it->config));
-        esp_mqtt_client_publish(ha_dev->mqtt, topic, payload, strlen(payload), 0, 0);
+        esp_mqtt_client_publish(ha_dev->mqtt, topic, payload, strlen(payload), 0, 1);
 
         free(payload);
     }
