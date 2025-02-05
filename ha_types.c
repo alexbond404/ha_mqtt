@@ -11,8 +11,11 @@ const char *config_type_str[] =
 
 const char *dev_class_str[] = 
 {
+    "door",
+    "lock",
     "occupancy",
     "presence",
+    "safety",
     "temperature"
 };
 

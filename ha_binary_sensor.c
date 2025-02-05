@@ -1,3 +1,5 @@
+// https://www.home-assistant.io/integrations/binary_sensor.mqtt/
+
 #include "ha_binary_sensor.h"
 
 #include <stdlib.h>

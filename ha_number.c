@@ -11,7 +11,7 @@ typedef struct
     number_settings_t settings;
 } ha_number_t;
 
-static void ha_number_on_change_cb(void *config, char *data, uint16_t data_len);
+static bool ha_number_on_change_cb(void *config, char *data, uint16_t data_len);
 
 
 ha_config_handle_t ha_number_init(char *name, float value, number_settings_t *settings)
@@ -69,7 +69,7 @@ cJSON* ha_number_get_value_norm(ha_config_handle_t ha_config)
     return cJSON_CreateNumber(config->value);
 }
 
-static void ha_number_on_change_cb(void *config, char *data, uint16_t data_len)
+static bool ha_number_on_change_cb(void *config, char *data, uint16_t data_len)
 {
     ha_config_handle_t ha_config = (ha_config_handle_t)config;
     ha_number_t *conf = (ha_number_t*)ha_config->config_spec;
@@ -84,5 +84,8 @@ static void ha_number_on_change_cb(void *config, char *data, uint16_t data_len)
         (conf->settings.on_change_cb(ha_config, new_value)))
     {
         conf->value = new_value;
+        return true;
     }
+
+    return false;
 }

@@ -32,8 +32,11 @@ extern const char *config_type_str[];
 typedef enum
 {
     DEV_CLASS_NONE = 0,
+    DEV_CLASS_DOOR,
+    DEV_CLASS_LOCK,
     DEV_CLASS_OCCUPANCY,
     DEV_CLASS_PRESENCE,
+    DEV_CLASS_SAFETY,
     DEV_CLASS_TEMPERATURE,
 } dev_class_e;
 extern const char *dev_class_str[];
