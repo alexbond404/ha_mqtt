@@ -59,6 +59,7 @@ typedef enum
     SENSOR_HUMIDITY,
     SENSOR_ILLUMINANCE,
     SENSOR_PRESSURE,
+    SENSOR_SIGNAL_STRENGTH,
     SENSOR_TEMPERATURE,
 } sensor_class_e;
 extern const char *sensor_class_str[];

@@ -32,6 +32,7 @@ const char *sensor_class_str[] =
     "humidity",
     "illuminance",
     "pressure",
+    "signal_strength",
     "temperature",
 };
 
