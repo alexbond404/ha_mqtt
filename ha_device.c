@@ -323,3 +323,8 @@ int ha_device_commit(ha_device_handle_t ha_dev)
 
     return 0;
 }
+
+bool ha_device_is_registered(ha_device_handle_t ha_dev)
+{
+    return ha_dev->is_registered;
+}
