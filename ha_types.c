@@ -3,6 +3,7 @@ const char *config_type_str[] =
 {
     "binary_sensor",
     "button",
+    "climate",
     "number",
     "select",
     "sensor",

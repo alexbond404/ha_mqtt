@@ -60,44 +60,70 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         {
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
-            char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+HA_NAME_MAX_SIZE];
-            if (event->topic_len+1 < sizeof(topic))
+            char mqtt_topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+3+1+HA_TOPIC_MAX_SIZE];
+            if (event->topic_len+1 < sizeof(mqtt_topic))
             {
-                memcpy(topic, event->topic, event->topic_len);
-                topic[event->topic_len] = 0x00;
+                memcpy(mqtt_topic, event->topic, event->topic_len);
+                mqtt_topic[event->topic_len] = 0x00;
 
-                char dev_name[HA_NAME_MAX_SIZE];
-                if (sscanf(topic, dev->command_topic_format, dev_name) == 1)
+                char topic[HA_TOPIC_MAX_SIZE];
+                if (sscanf(mqtt_topic, dev->command_topic_format, topic) == 1)
                 {
+                    ESP_LOGI(TAG, "mqtt recv: %s", topic);
                     ha_config_list_entry_t *it;
                     LIST_FOREACH(it, &dev->configs, list_entry)
                     {
-                        if (strcmp(dev_name, ha_base_config_get_device_name_norm_str(it->config)) == 0)
+                        if (ha_base_config_has_command_cb(it->config))
                         {
-                            if (ha_base_config_has_on_change_cb(it->config))
+                            bool found = false;
+                            ha_topic_cb_list_entry_t *topic_entry;
+                            SLIST_FOREACH(topic_entry, &it->config->topic_cb_list, list_entry)
                             {
-                                if (ha_base_config_call_on_change_cb(it->config, event->data, event->data_len))
+                                if (strcmp(topic, topic_entry->topic) == 0)
                                 {
-                                    if (ha_base_config_has_value(it->config))
+                                    found = true;
+                                    if (topic_entry->topic_cb(it->config, event->data, event->data_len))
                                     {
-                                        cJSON *root = cJSON_CreateObject();
-                                        cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
-
-                                        if (dev->current_data)
+                                        if (ha_base_config_has_value(it->config))
                                         {
-                                            free(dev->current_data);
-                                        }
-                                        dev->current_data = cJSON_PrintUnformatted(root);
-                                        cJSON_Delete(root);
+                                            cJSON *root = cJSON_CreateObject();
+                                            if (it->config->state_topic_vars_cnt)
+                                            {
+                                                ha_base_config_append_value_norm(it->config, root);
+                                            }
+                                            else
+                                            {
+                                                cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+                                            }
 
-                                        ha_device_publish_data(dev);
+                                            if (dev->current_data)
+                                            {
+                                                free(dev->current_data);
+                                            }
+                                            dev->current_data = cJSON_PrintUnformatted(root);
+                                            cJSON_Delete(root);
+
+                                            ha_device_publish_data(dev);
+                                        }
                                     }
+                                    break;
                                 }
                             }
-                            break;
+                            if (found)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
+                else
+                {
+                    ESP_LOGW(TAG, "data wrong format");
+                }
+            }
+            else
+            {
+                ESP_LOGW(TAG, "data is too long");
             }
         }
         break;
@@ -128,6 +154,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
     }
 
     // adding new configs
+    bool subscribed = false;
     LIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
         char tmp_str[HA_PREFIX_MAX_SIZE+HA_NAME_MAX_SIZE+1+HA_NAME_MAX_SIZE];
@@ -158,16 +185,25 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
 
         cJSON_AddItemToObject(root, "name", cJSON_CreateString(ha_base_config_get_device_name_str(it->config)));
 
-        cJSON_AddItemToObject(root, "state_topic", cJSON_CreateString(topic));
+        if (ha_base_config_has_value(it->config))
+        {
+            if (it->config->state_topic_vars_cnt)
+            {
+                for (uint8_t i = 0; i < it->config->state_topic_vars_cnt; i++)
+                {
+                    cJSON_AddItemToObject(root, it->config->state_topic_vars_arr[i], cJSON_CreateString(topic));
+                }
+            }
+            else
+            {
+                cJSON_AddItemToObject(root, "state_topic", cJSON_CreateString(topic));
+                snprintf(tmp_str, sizeof(tmp_str), "{{ value_json.%s }}", ha_base_config_get_device_name_norm_str(it->config));
+                cJSON_AddItemToObject(root, "value_template", cJSON_CreateString(toLower(tmp_str)));
+            }
+        }
 
         snprintf(tmp_str, sizeof(tmp_str), "%s_%s_%s", ha_dev->device_name, ha_base_config_get_device_name_str(it->config), ha_dev->device_unique_prefix);
         cJSON_AddItemToObject(root, "unique_id", cJSON_CreateString(toLower(tmp_str)));
-
-        if (ha_base_config_has_value(it->config))
-        {
-            snprintf(tmp_str, sizeof(tmp_str), "{{ value_json.%s }}", ha_base_config_get_device_name_norm_str(it->config));
-            cJSON_AddItemToObject(root, "value_template", cJSON_CreateString(toLower(tmp_str)));
-        }
 
         cJSON_AddItemToObject(root, "platform", cJSON_CreateString("mqtt"));
 
@@ -178,11 +214,21 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
             cJSON_AddItemToObject(root, "device_class", cJSON_CreateString(ha_base_config_get_device_class_str(it->config)));
         }
 
-        if (ha_base_config_has_on_change_cb(it->config))
+        if (ha_base_config_has_command_cb(it->config))
         {
-            snprintf(topic, sizeof(topic), ha_dev->command_topic_format, ha_base_config_get_device_name_norm_str(it->config));
-            cJSON_AddItemToObject(root, "command_topic", cJSON_CreateString(topic));
-            esp_mqtt_client_subscribe(ha_dev->mqtt, topic, 0);
+            ha_topic_cb_list_entry_t *topic_entry;
+            SLIST_FOREACH(topic_entry, &it->config->topic_cb_list, list_entry)
+            {
+                snprintf(topic, sizeof(topic), ha_dev->command_topic_format, topic_entry->topic);
+                cJSON_AddItemToObject(root, topic_entry->var_name, cJSON_CreateString(topic));
+            }
+
+            if (!subscribed)
+            {
+                subscribed = true;
+                snprintf(topic, sizeof(topic), ha_dev->command_topic_format, "#");
+                esp_mqtt_client_subscribe(ha_dev->mqtt, topic, 0);
+            }
         }
 
         // add private config part
@@ -309,7 +355,14 @@ int ha_device_commit(ha_device_handle_t ha_dev)
     {
         if (ha_base_config_has_value(it->config))
         {
-            cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+            if (it->config->state_topic_vars_cnt)
+            {
+                ha_base_config_append_value_norm(it->config, root);
+            }
+            else
+            {
+                cJSON_AddItemToObject(root, ha_base_config_get_device_name_norm_str(it->config), ha_base_config_get_value_norm(it->config));
+            }
         }
     }
     if (ha_dev->current_data)

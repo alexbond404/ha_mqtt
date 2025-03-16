@@ -2,9 +2,7 @@
 
 #include <ctype.h>
 #include <string.h>
-
-#include "ha_binary_sensor.h"
-#include "ha_sensor.h"
+#include <sys/queue.h>
 
 
 static const char forbidden_symbols[] = " .";
@@ -16,6 +14,7 @@ extern const char* ha_select_get_device_class_str(ha_config_handle_t ha_config);
 extern const char* ha_sensor_get_device_class_str(ha_config_handle_t ha_config);
 extern const char* ha_switch_get_device_class_str(ha_config_handle_t ha_config);
 extern void ha_binary_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
+extern void ha_climate_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
 extern void ha_number_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
 extern void ha_select_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
 extern void ha_sensor_get_private_fields(ha_config_handle_t ha_config, cJSON *obj);
@@ -25,6 +24,7 @@ extern cJSON* ha_number_get_value_norm(ha_config_handle_t ha_config);
 extern cJSON* ha_select_get_value_norm(ha_config_handle_t ha_config);
 extern cJSON* ha_sensor_get_value_norm(ha_config_handle_t ha_config);
 extern cJSON* ha_switch_get_value_norm(ha_config_handle_t ha_config);
+extern void ha_climate_append_value_norm(ha_config_handle_t ha_config, cJSON *obj);
 
 
 ha_config_handle_t ha_base_config_init(char *name, config_type_e type)
@@ -49,7 +49,9 @@ ha_config_handle_t ha_base_config_init(char *name, config_type_e type)
         }
     }
     config->type = type;
-    config->on_change_cb = NULL;
+    config->state_topic_vars_arr = NULL;
+    config->state_topic_vars_cnt = 0;
+    SLIST_INIT(&config->topic_cb_list);
     config->has_value = true;
 
     return config;
@@ -104,6 +106,9 @@ void ha_base_config_get_private_fields(ha_config_handle_t ha_config, cJSON *obj)
         case BINARY_SENSOR:
             ha_binary_sensor_get_private_fields(ha_config, obj);
             break;
+        case CLIMATE:
+            ha_climate_get_private_fields(ha_config, obj);
+            break;
         case NUMBER:
             ha_number_get_private_fields(ha_config, obj);
             break;
@@ -142,14 +147,22 @@ cJSON* ha_base_config_get_value_norm(ha_config_handle_t ha_config)
     }
 }
 
-bool ha_base_config_has_on_change_cb(ha_config_handle_t ha_config)
+void ha_base_config_append_value_norm(ha_config_handle_t ha_config, cJSON *obj)
 {
-    return (ha_config->on_change_cb != NULL);
+    switch (ha_config->type)
+    {
+        case CLIMATE:
+            ha_climate_append_value_norm(ha_config, obj);
+            break;
+        
+        default:
+            break;
+    }
 }
 
-bool ha_base_config_call_on_change_cb(ha_config_handle_t ha_config, char *data, int data_len)
+bool ha_base_config_has_command_cb(ha_config_handle_t ha_config)
 {
-    return ha_config->on_change_cb(ha_config, data, data_len);
+    return !SLIST_EMPTY(&ha_config->topic_cb_list);
 }
 
 bool ha_base_config_has_value(ha_config_handle_t ha_config)

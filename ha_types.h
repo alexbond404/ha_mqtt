@@ -3,11 +3,15 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/queue.h>
 
 
 #define HA_NAME_MAX_SIZE                32
 #define HA_PREFIX_MAX_SIZE              32
 #define HA_TOPIC_PREFIX_MAX_SIZE        16
+#define HA_TOPIC_MAX_SIZE               32
+#define HA_VARIABLE_NAME_MAX_SIZE       32
+#define HA_VALUE_TEMPLATE_MAX_SIZE      32
 
 #define HA_TOPIC_PREFIX_DEFAULT         "homeassistant"
 
@@ -21,6 +25,7 @@ typedef enum
 {
     BINARY_SENSOR = 0,
     BUTTON,
+    CLIMATE,
     NUMBER,
     SELECT,
     SENSOR,
@@ -74,14 +79,26 @@ typedef enum
 extern const char *number_mode_str[];
 
 
-typedef bool (*on_change_cb_t)(void *config, char *data, uint16_t data_len);
+typedef bool (*topic_cb_t)(void *config, char *data, uint16_t data_len);
 
-typedef struct 
+typedef struct ha_topic_cb_list_entry_s
+{
+    char var_name[HA_VARIABLE_NAME_MAX_SIZE];
+    char topic[HA_TOPIC_MAX_SIZE];
+    topic_cb_t topic_cb;
+    SLIST_ENTRY(ha_topic_cb_list_entry_s) list_entry;
+} ha_topic_cb_list_entry_t;
+
+typedef SLIST_HEAD(config_topic_list, ha_topic_cb_list_entry_s) ha_topic_cb_list_t;
+
+typedef struct
 {
     char name[HA_NAME_MAX_SIZE];
     char name_norm[HA_NAME_MAX_SIZE];
     config_type_e type;
-    on_change_cb_t on_change_cb;
+    char **state_topic_vars_arr;
+    uint8_t state_topic_vars_cnt;
+    ha_topic_cb_list_t topic_cb_list;
     bool has_value;
 
     void *config_spec;

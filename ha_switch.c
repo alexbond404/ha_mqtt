@@ -36,7 +36,15 @@ ha_config_handle_t ha_switch_init(char *name, bool value, on_switch_change_cb_t 
     if (on_change_cb)
     {
         config->on_change_cb = on_change_cb;
-        config_base->on_change_cb = ha_switch_on_change_cb;
+
+        // for switch we have only one command topic - just create it here
+        ha_topic_cb_list_entry_t *record = (ha_topic_cb_list_entry_t*)malloc(sizeof(ha_topic_cb_list_entry_t));
+        strcpy(record->var_name, "command_topic");
+        strcpy(record->topic, config_base->name_norm);
+        strcat(record->topic, "_change");
+        record->topic_cb = ha_switch_on_change_cb;
+
+        SLIST_INSERT_HEAD(&config_base->topic_cb_list, record, list_entry);
     }
     config_base->config_spec = config;
 

@@ -23,7 +23,14 @@ ha_config_handle_t ha_number_init(char *name, float value, number_settings_t *se
     config->settings = *settings;
     if (settings->on_change_cb)
     {
-        config_base->on_change_cb = ha_number_on_change_cb;
+        // for number we have only one command topic - just create it here
+        ha_topic_cb_list_entry_t *record = (ha_topic_cb_list_entry_t*)malloc(sizeof(ha_topic_cb_list_entry_t));
+        strcpy(record->var_name, "command_topic");
+        strcpy(record->topic, config_base->name_norm);
+        strcat(record->topic, "_change");
+        record->topic_cb = ha_number_on_change_cb;
+
+        SLIST_INSERT_HEAD(&config_base->topic_cb_list, record, list_entry);
     }
     config_base->config_spec = config;
 
