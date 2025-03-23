@@ -71,7 +71,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 {
                     ESP_LOGI(TAG, "mqtt recv: %s", topic);
                     ha_config_list_entry_t *it;
-                    LIST_FOREACH(it, &dev->configs, list_entry)
+                    SLIST_FOREACH(it, &dev->configs, list_entry)
                     {
                         if (ha_base_config_has_command_cb(it->config))
                         {
@@ -145,7 +145,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
 
     // remove previous configs
     ha_config_list_entry_t *it;
-    LIST_FOREACH(it, &ha_dev->configs, list_entry)
+    SLIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
         snprintf(topic, sizeof(topic), "%s/%s/%s/%s/config", ha_dev->ha_topic_prefix, ha_base_config_get_device_type_str(it->config),
                  ha_dev->device_name, ha_base_config_get_device_name_norm_str(it->config));
@@ -155,7 +155,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
 
     // adding new configs
     bool subscribed = false;
-    LIST_FOREACH(it, &ha_dev->configs, list_entry)
+    SLIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
         char tmp_str[HA_PREFIX_MAX_SIZE+HA_NAME_MAX_SIZE+1+HA_NAME_MAX_SIZE];
 
@@ -293,7 +293,7 @@ ha_device_handle_t ha_device_init(ha_device_config_t *config)
         dev->model[0] = 0;
     }
 
-    LIST_INIT(&dev->configs);
+    SLIST_INIT(&dev->configs);
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.hostname = config->mqtt_server,
@@ -321,14 +321,14 @@ int ha_device_add_config(ha_device_handle_t ha_dev, ha_config_handle_t config)
     ha_config_list_entry_t *record = (ha_config_list_entry_t*)malloc(sizeof(ha_config_list_entry_t));
     record->config = config;
 
-    ha_config_list_entry_t *head = LIST_FIRST(&ha_dev->configs);
+    ha_config_list_entry_t *head = SLIST_FIRST(&ha_dev->configs);
     if (head == NULL)
     {
-        LIST_INSERT_HEAD(&ha_dev->configs, record, list_entry);
+        SLIST_INSERT_HEAD(&ha_dev->configs, record, list_entry);
     }
     else
     {
-        LIST_INSERT_BEFORE(head, record, list_entry);
+        SLIST_INSERT_AFTER(head, record, list_entry);
     }
 
     return 0;
@@ -351,7 +351,7 @@ int ha_device_commit(ha_device_handle_t ha_dev)
     cJSON *root = cJSON_CreateObject();
 
     ha_config_list_entry_t *it;
-    LIST_FOREACH(it, &ha_dev->configs, list_entry)
+    SLIST_FOREACH(it, &ha_dev->configs, list_entry)
     {
         if (ha_base_config_has_value(it->config))
         {

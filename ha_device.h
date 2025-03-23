@@ -22,7 +22,7 @@ typedef struct
 typedef struct ha_config_list_entry_s
 {
     ha_config_handle_t config;
-    LIST_ENTRY(ha_config_list_entry_s) list_entry;
+    SLIST_ENTRY(ha_config_list_entry_s) list_entry;
 } ha_config_list_entry_t;
 
 typedef struct
@@ -33,7 +33,7 @@ typedef struct
     char manufacturer[HA_DEVICE_MANUFACTURER_MAX_SIZE];
     char model[HA_DEVICE_MODEL_MAX_SIZE];
 
-    LIST_HEAD(ha_config_list, ha_config_list_entry_s) configs;
+    SLIST_HEAD(ha_config_list, ha_config_list_entry_s) configs;
 
     esp_mqtt_client_handle_t mqtt;
     bool mqtt_connected;
