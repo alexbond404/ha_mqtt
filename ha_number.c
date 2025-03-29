@@ -1,3 +1,5 @@
+// https://www.home-assistant.io/integrations/number.mqtt/
+
 #include "ha_number.h"
 
 #include <stdlib.h>
@@ -21,17 +23,15 @@ ha_config_handle_t ha_number_init(char *name, float value, number_settings_t *se
 
     config->value = value;
     config->settings = *settings;
-    if (settings->on_change_cb)
-    {
-        // for number we have only one command topic - just create it here
-        ha_topic_cb_list_entry_t *record = (ha_topic_cb_list_entry_t*)malloc(sizeof(ha_topic_cb_list_entry_t));
-        strcpy(record->var_name, "command_topic");
-        strcpy(record->topic, config_base->name_norm);
-        strcat(record->topic, "_change");
-        record->topic_cb = ha_number_on_change_cb;
 
-        SLIST_INSERT_HEAD(&config_base->topic_cb_list, record, list_entry);
-    }
+    // for number we have only one command topic - just create it here
+    ha_topic_cb_list_entry_t *record = (ha_topic_cb_list_entry_t*)malloc(sizeof(ha_topic_cb_list_entry_t));
+    strcpy(record->var_name, "command_topic");
+    strcpy(record->topic, config_base->name_norm);
+    strcat(record->topic, "_change");
+    record->topic_cb = ha_number_on_change_cb;
+    SLIST_INSERT_HEAD(&config_base->topic_cb_list, record, list_entry);
+
     config_base->config_spec = config;
 
     return config_base;
@@ -88,7 +88,7 @@ static bool ha_number_on_change_cb(void *config, char *data, uint16_t data_len)
     float new_value = atof(number);
     if ((conf->settings.min <= new_value) &&
         (conf->settings.max >= new_value) &&
-        (conf->settings.on_change_cb(ha_config, new_value)))
+        (conf->settings.on_change_cb == NULL || conf->settings.on_change_cb(ha_config, new_value)))
     {
         conf->value = new_value;
         return true;
