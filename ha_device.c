@@ -10,7 +10,7 @@
 
 static const char *TAG = "ha_dev";
 
-static void ha_device_update_ha(ha_device_handle_t ha_dev);
+static void ha_device_register(ha_device_handle_t ha_dev);
 static void ha_device_publish_data(ha_device_handle_t ha_dev);
 
 
@@ -39,11 +39,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             snprintf(topic, sizeof(topic), "%s/status", dev->ha_topic_prefix);
             esp_mqtt_client_subscribe(client, topic, 0);
 
-            if (!dev->is_registered)
-            {
-                ha_device_update_ha(dev);
-                dev->is_registered = true;
-            }
+            ha_device_register(dev);
 
             dev->mqtt_connected = true;
         }
@@ -118,7 +114,25 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 }
                 else
                 {
-                    ESP_LOGW(TAG, "data wrong format");
+                    char topic[HA_TOPIC_PREFIX_MAX_SIZE+7];
+                    snprintf(topic, sizeof(topic), "%s/status", dev->ha_topic_prefix);
+                    if (strcmp(mqtt_topic, topic) == 0)
+                    {
+                        ESP_LOGI(TAG, "homeassistant status topic, '%.*s'", event->data_len, event->data);
+                        if (memcmp(event->data, "online", MIN(event->data_len, 6)) == 0)
+                        {
+                            ESP_LOGI(TAG, "homeassistant is online");
+                            ha_device_register(dev);
+                        }
+                        else
+                        {
+                            ESP_LOGI(TAG, "homeassistant is offline");
+                        }
+                    }
+                    else
+                    {
+                        ESP_LOGW(TAG, "data wrong format");
+                    }
                 }
             }
             else
@@ -136,10 +150,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-static void ha_device_update_ha(ha_device_handle_t ha_dev)
+static void ha_device_register(ha_device_handle_t ha_dev)
 {
-    // invalidate current data
     char topic[HA_PREFIX_MAX_SIZE+1+CONFIG_DEVICE_TYPE_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+HA_NAME_MAX_SIZE+1+6];
+
+    // unsubscribe
+    snprintf(topic, sizeof(topic), ha_dev->command_topic_format, "#");
+    esp_mqtt_client_unsubscribe(ha_dev->mqtt, topic);
+
+    // invalidate current data
     snprintf(topic, sizeof(topic), "%s/%s", ha_dev->device_unique_prefix, ha_dev->device_name);
     esp_mqtt_client_publish(ha_dev->mqtt, topic, NULL, 0, 0, 1);
 
@@ -248,7 +267,7 @@ static void ha_device_update_ha(ha_device_handle_t ha_dev)
 
 static void ha_device_publish_data(ha_device_handle_t ha_dev)
 {
-    if (ha_dev->mqtt_connected && ha_dev->is_registered)
+    if (ha_dev->mqtt_connected)
     {
         static char topic[HA_PREFIX_MAX_SIZE+1+HA_NAME_MAX_SIZE];
         snprintf(topic, sizeof(topic), "%s/%s", ha_dev->device_unique_prefix, ha_dev->device_name);
@@ -307,7 +326,6 @@ ha_device_handle_t ha_device_init(ha_device_config_t *config)
     esp_mqtt_client_register_event(dev->mqtt, ESP_EVENT_ANY_ID, mqtt_event_handler, dev);
 
     dev->mqtt_connected = false;
-    dev->is_registered = false;
 
     snprintf(dev->command_topic_format, sizeof(dev->command_topic_format), "%s/%s/set/%%s", dev->device_unique_prefix, dev->device_name);
 
@@ -377,7 +395,7 @@ int ha_device_commit(ha_device_handle_t ha_dev)
     return 0;
 }
 
-bool ha_device_is_registered(ha_device_handle_t ha_dev)
+bool ha_device_is_connected(ha_device_handle_t ha_dev)
 {
-    return ha_dev->is_registered;
+    return ha_dev->mqtt_connected;
 }
