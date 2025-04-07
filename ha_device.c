@@ -2,11 +2,15 @@
 
 #include <ctype.h>
 #include <string.h>
-#include "esp_log.h"
+
 #include "cJSON.h"
+#include "esp_log.h"
 
 #include "ha_base_config.h"
 
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 static const char *TAG = "ha_dev";
 
